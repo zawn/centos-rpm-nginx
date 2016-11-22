@@ -12,8 +12,6 @@
 Requires(pre): shadow-utils
 Requires: initscripts >= 8.36
 Requires(post): chkconfig
-Requires: openssl
-BuildRequires: openssl-devel
 %endif
 
 %if 0%{?rhel} == 6
@@ -21,8 +19,6 @@ BuildRequires: openssl-devel
 Requires(pre): shadow-utils
 Requires: initscripts >= 8.36
 Requires(post): chkconfig
-Requires: openssl >= 1.0.1
-BuildRequires: openssl-devel >= 1.0.1
 %endif
 
 %if 0%{?rhel} == 7
@@ -31,9 +27,7 @@ BuildRequires: openssl-devel >= 1.0.1
 Epoch: %{epoch}
 Requires(pre): shadow-utils
 Requires: systemd
-Requires: openssl >= 1.0.1
 BuildRequires: systemd
-BuildRequires: openssl-devel >= 1.0.1
 %endif
 
 %if 0%{?suse_version} == 1315
@@ -54,9 +48,9 @@ BuildRequires: systemd
 
 %define WITH_CC_OPT $(echo %{optflags} $(pcre-config --cflags))
 
-%define BASE_CONFIGURE_ARGS $(echo "--prefix=%{_sysconfdir}/nginx --sbin-path=%{_sbindir}/nginx --modules-path=%{_libdir}/nginx/modules --conf-path=%{_sysconfdir}/nginx/nginx.conf --error-log-path=%{_localstatedir}/log/nginx/error.log --http-log-path=%{_localstatedir}/log/nginx/access.log --pid-path=%{_localstatedir}/run/nginx.pid --lock-path=%{_localstatedir}/run/nginx.lock --http-client-body-temp-path=%{_localstatedir}/cache/nginx/client_temp --http-proxy-temp-path=%{_localstatedir}/cache/nginx/proxy_temp --http-fastcgi-temp-path=%{_localstatedir}/cache/nginx/fastcgi_temp --http-uwsgi-temp-path=%{_localstatedir}/cache/nginx/uwsgi_temp --http-scgi-temp-path=%{_localstatedir}/cache/nginx/scgi_temp --user=%{nginx_user} --group=%{nginx_group} --with-compat --with-file-aio --with-threads --with-http_addition_module --with-http_auth_request_module --with-http_dav_module --with-http_flv_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_mp4_module --with-http_random_index_module --with-http_realip_module --with-http_secure_link_module --with-http_slice_module --with-http_ssl_module --with-http_stub_status_module --with-http_sub_module --with-http_v2_module --with-mail --with-mail_ssl_module --with-stream --with-stream_realip_module --with-stream_ssl_module --with-stream_ssl_preread_module")
+%define BASE_CONFIGURE_ARGS $(echo " --prefix=%{_sysconfdir}/nginx --sbin-path=%{_sbindir}/nginx --modules-path=%{_libdir}/nginx/modules --conf-path=%{_sysconfdir}/nginx/nginx.conf --error-log-path=%{_localstatedir}/log/nginx/error.log --http-log-path=%{_localstatedir}/log/nginx/access.log --pid-path=%{_localstatedir}/run/nginx.pid --lock-path=%{_localstatedir}/run/nginx.lock --http-client-body-temp-path=%{_localstatedir}/cache/nginx/client_temp --http-proxy-temp-path=%{_localstatedir}/cache/nginx/proxy_temp --http-fastcgi-temp-path=%{_localstatedir}/cache/nginx/fastcgi_temp --http-uwsgi-temp-path=%{_localstatedir}/cache/nginx/uwsgi_temp --http-scgi-temp-path=%{_localstatedir}/cache/nginx/scgi_temp --user=%{nginx_user} --group=%{nginx_group} --with-compat --with-file-aio --with-threads --with-http_addition_module --with-http_auth_request_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_mp4_module --with-http_random_index_module --with-http_realip_module --with-http_secure_link_module --with-http_slice_module --with-http_ssl_module --with-openssl=openssl-1.0.2j --with-http_stub_status_module --with-http_sub_module --with-http_v2_module --with-stream --with-stream_realip_module --with-stream_ssl_module --with-stream_ssl_preread_module --without-http_auth_basic_module --without-http_autoindex_module --without-http_fastcgi_module --without-http_uwsgi_module --without-http_scgi_module --add-module=ngx_brotli_module")
 
-Summary: High performance web server
+Summary: High performance web server (Nanjing Wheel Technology Co., Ltd)
 Name: nginx
 Version: %{main_version}
 Release: %{main_release}
@@ -76,6 +70,14 @@ Source9: nginx.upgrade.sh
 Source10: nginx.suse.logrotate
 Source11: nginx-debug.service
 Source12: COPYRIGHT
+Source100: https://github.com/openssl/openssl/archive/OpenSSL_1_0_2j.tar.gz
+Source101: https://github.com/google/brotli/archive/a9f2344f41b739eeaa0ceb8a31cf607fe4e9d166.zip
+Source102: https://github.com/cloudflare/ngx_brotli_module/archive/7df1e381d7abefa53a226306057453a202cd60c2.zip
+
+
+
+Patch0: https://raw.githubusercontent.com/zawn/sslconfig/master/patches/nginx__%{version}_dynamic_tls_records.patch
+Patch1: https://raw.githubusercontent.com/cloudflare/sslconfig/master/patches/openssl__chacha20_poly1305_draft_and_rfc_ossl102j.patch
 
 License: 2-clause BSD-like license
 
@@ -95,6 +97,22 @@ a mail proxy server.
 
 %prep
 %setup -q
+
+tar -zxf  %{SOURCE100}
+
+mv  openssl-OpenSSL_1_0_2j openssl-1.0.2j
+
+unzip -q  %{SOURCE101}
+unzip -q  %{SOURCE102}
+
+mv ngx_brotli_module-7df1e381d7abefa53a226306057453a202cd60c2 ngx_brotli_module
+
+mv brotli-a9f2344f41b739eeaa0ceb8a31cf607fe4e9d166/* ngx_brotli_module/brotli/
+
+
+%patch0 -p1
+%patch1 -p1 -d openssl-1.0.2j
+
 cp %{SOURCE2} .
 sed -e 's|%%DEFAULTSTART%%|2 3 4 5|g' -e 's|%%DEFAULTSTOP%%|0 1 6|g' \
     -e 's|%%PROVIDES%%|nginx|g' < %{SOURCE2} > nginx.init
